@@ -1,0 +1,9 @@
+llama-index
+llama-index-llms-openai
+llama-index-llms-gemini
+llama-index-embeddings-openai
+llama-index-embeddings-huggingface
+gradio
+dotenv
+llama-index-readers-web
+requests
