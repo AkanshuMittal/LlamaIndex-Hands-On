@@ -8,6 +8,14 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 load_dotenv()
 
+#Data source toggle
+USE_MOCK_DATA = True
+
+#Mock data 
+MOCK_DATA_URL = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/ZRe59Y_NJyn3hZgnF1iFYA/linkedin-profile-data.json"
+
+PROXYCURL_API_KEY = os.getenv("PROXYCURL_API_KEY")
+
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 
 if LLM_PROVIDER == "openai":
