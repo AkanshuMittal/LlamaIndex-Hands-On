@@ -25,7 +25,7 @@ if LLM_PROVIDER == "openai":
         temperature=0.3
     )
 
-    embedded_model = OpenAIEmbedding(
+    embed_model = OpenAIEmbedding(
         api_key=os.getenv("OPENAI_API_KEY")
     )
 
@@ -33,7 +33,7 @@ elif LLM_PROVIDER == "gemini":
     llm = Gemini(
         model="models/gemini-pro",
         api_key=os.getenv("GOOGLE_API_KEY"),
-        emperature=0.3
+        temperature=0.3
     )
 
     embed_model = HuggingFaceEmbedding(
@@ -48,7 +48,7 @@ SIMILARITY_TOP_K = 5
 
 ## Prompt Template
 
-NITIAL_FACTS_TEMPLATE = """
+INITIAL_FACTS_TEMPLATE = """
 You are an AI assistant that provides detailed answers based on the provided context.
 
 Context information is below:
