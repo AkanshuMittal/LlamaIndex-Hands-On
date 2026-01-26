@@ -3,6 +3,8 @@ import requests
 import logging
 from typing import Dict, Optional, Any
 import config
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +34,16 @@ def extract_linkedin_profile(
 
         if mock:
             logger.info("Using mock data from a premade JSON file")
+            
             mock_url = config.MOCK_DATA_URL
 
-            response = requests.get(mock_url, timeout=30)
+            if not os.path.exists(mock_url):
+                raise FileNotFoundError(
+                    f"Mock data file not found at: {mock_url}"
+        )
+
+            with open(mock_url, "r", encoding="utf-8") as f:
+                return json.load(f)
 
         else:
             if not api_key:
