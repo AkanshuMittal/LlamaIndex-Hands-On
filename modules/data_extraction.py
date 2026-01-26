@@ -1,133 +1,67 @@
-import time
-import requests
 import logging
-from typing import Dict, Optional, Any
-import config
 import json
 import os
+import requests
 
 logger = logging.getLogger(__name__)
 
-def extract_linkedin_profile(
-    linkedin_profile_url: Optional[str] = None,
-    api_key: Optional[str] = None,
-    mock: Optional[bool] =  None
-) -> Dict[str, Any]:
-    
-    """Extract LinkedIn profile data using Proxycurl API or loads premade JSON file.
-    
-       Args:
-           linkedin_profile_url: The LinkedIn profile URL to extract data from.
-           api_key: Proxycurl API key(Optional, taken from config if not passed
-           mock: Force mock mode (optional, taken from config if not passed).
 
-           Returns:
-               Dictionary containig the LinkedIn profile data.
+# MOCK JSON DATA EXTRACTION
+
+def extract_mock_profile():
     """
+    Load LinkedIn profile data from a local mock JSON file.
+    Used for development and testing.
+    """
+    mock_path = "data.json"
 
-    start_time = time.time()
+    if not os.path.exists(mock_path):
+        raise FileNotFoundError(f"Mock data file not found at {mock_path}")
 
-    try:
-        # Decide mock mode from config if not explicitly passed 
-        if mock is None:
-            mock = config.USE_MOCK_DATA
+    logger.info("Using mock JSON profile data")
 
-        if mock:
-            logger.info("Using mock data from a premade JSON file")
-            
-            mock_url = config.MOCK_DATA_URL
+    with open(mock_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+    
 
-            if not os.path.exists(mock_url):
-                raise FileNotFoundError(
-                    f"Mock data file not found at: {mock_url}"
-        )
+# LINKEDIN PROFILE EXTRACTION 
+def extract_linkedin_profile(linkedin_url: str):
+    """
+    Extract LinkedIn profile data using Apify actor.
+    User provides only the LinkedIn URL.
+    """
+    
+    APIFY_API_KEY = os.getenv("APIFY_API_KEY")
+    
+    if not APIFY_API_KEY:
+        raise ValueError("APIFY_API_KEY not found in environment variables")
 
-            with open(mock_url, "r", encoding="utf-8") as f:
-                return json.load(f)
+    logger.info("Extracting LinkedIn profile using Apify")
+    
+    actor_endpoint = (
+        "https://api.apify.com/v2/acts/"
+        "VYRyEF4ygTTkaIghe/run-sync-get-dataset-items"
+    )
 
-        else:
-            if not api_key:
-                api_key = config.PROXYCURL_API_KEY
+    payload = {
+        "startUrls": [{"url": linkedin_url}],
+        "resultsLimit": 1
+    }
+    
+    response = requests.post(
+        f"{actor_endpoint}?token={APIFY_API_KEY}",
+        json=payload,
+        timeout=60
+    )
+    if response.status_code != 200:
+        logger.error(f"Apify request failed: {response.text}")
+        raise RuntimeError("Failed to extract LinkedIn data via Apify")
 
-            if not api_key:
-                raise ValueError(
-                    "Proxycurl API key is required when mock mode is False."
-                )
-            
-            if not linkedin_profile_url:
-                raise ValueError(
-                    "LinkedIn profile URL is required when mock mode is False."
-                )
-            
-            logger.info("Starting to extract the LinkedIn profile...")
+    data = response.json()
 
-            api_endpoint = "https://nubela.co/proxycurl/api/v2/linkedin"
+    if not data:
+        raise ValueError("No data returned from Apify")
 
-            headers = {
-                "Authorization": f"Bearer {api_key}"
-            }
-
-            params = {
-                "url": linkedin_profile_url,
-                "fallback_to_cache": "on-error",
-                "use_cache": "if-present",
-                "skills": "include",
-                "inferred_salary": "include",
-                "personal_email": "include",
-                "personal_contact_number": "include"
-            }
-
-            logger.info(
-                f"Sending API request to Proxycurl at "
-                f"{time.time() - start_time:.2f} seconds..."
-            )
-
-            response = requests.get(
-                api_endpoint,
-                headers=headers,
-                params=params,
-                timeout=10
-            )
-
-            logger.info(
-                f"Received response at {time.time() - start_time:.2f} seconds..."
-            )
-
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-
-                    data = {
-                        k: v
-                        for k, v in data.items()
-                        if v not in([],"",None)
-                        and k not in ["people_also_viewed", "certifications"]
-                    }
-             
-                    if data.get("groups"):
-                        for group_dict in data["groups"]:
-                            group_dict.pop("profile_pic_url", None)
-
-                    return data 
-                
-                except ValueError as e:
-                    logger.error(f"Error parsing JSON response: {e}")
-                    logger.error(
-                        f"Response content: {response.text[:200]}..."
-                    )
-
-                    return {}
-                
-            else:
-                logger.error(
-                    f"Failed to retrieve data."
-                    f"Status code: {response.status_code}"
-                )
-                logger.error(f"Response: {response.text}")
-                return {}
-            
-    except Exception as e:
-        logger.error(f"Error in extract_linkedin_profile: {e}")
-        return {}
-                 
-
+    # Convert structured data to text for RAG
+    return json.dumps(data[0])
+               
