@@ -117,6 +117,8 @@ if submit_btn:
     except Exception as e:
         logger.error(e)
         st.error(f"❌ Error: {e}")
+        
+        
 
 # 🔹 CHAT SECTION
 st.header("2️⃣ Chat with Profile")
@@ -141,7 +143,7 @@ else:
                     )
 
                 st.subheader("💬 Answer")
-                st.write(response.response)
+                st.write(response)
 
             except Exception as e:
                 logger.error(e)
