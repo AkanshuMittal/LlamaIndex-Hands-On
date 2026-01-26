@@ -2,7 +2,7 @@ import streamlit as st
 import uuid
 import logging
 
-from modules.data_extraction import extract_linkedin_profile
+from modules.data_extraction import extract_mock_profile, extract_linkedin_profile
 from modules.data_processing import (
     split_profile_data,
     create_vector_database,
@@ -13,17 +13,15 @@ from modules.query_engine import (
     answer_user_query,
 )
 
+from modules.pdf_extraction import extract_profile_from_pdf
 import config
 
-# ------------------------------
 # Logging setup
-# ------------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ------------------------------
+
 # Streamlit Page Config
-# ------------------------------
 st.set_page_config(
     page_title="LinkedIn Icebreaker Bot",
     layout="wide"
@@ -35,51 +33,59 @@ st.write(
     "**Retrieval-Augmented Generation (RAG)** pipeline."
 )
 
-# ------------------------------
+
 # Session State Initialization
-# ------------------------------
 if "session_id" not in st.session_state:
     st.session_state.session_id = None
 
 if "vector_index" not in st.session_state:
     st.session_state.vector_index = None
 
-# ======================================================
 # 🔹 PROFILE PROCESSING SECTION
-# ======================================================
 st.header("1️⃣ Process LinkedIn Profile")
 
+source_type = st.radio(
+    "Select Profile Source",
+    ["PDF Upload", "LinkedIn URL", "JSON (Mock Data)"]
+)
+
 with st.form("profile_form"):
-    linkedin_url = st.text_input(
-        "LinkedIn Profile URL",
-        placeholder="https://www.linkedin.com/in/username/"
-    )
-
-    api_key = st.text_input(
-        "ProxyCurl API Key (optional)",
-        type="password",
-        value=config.PROXYCURL_API_KEY or ""
-    )
-
-    use_mock = st.checkbox("Use Mock Data", value=config.USE_MOCK_DATA)
-
+    linkedin_url = None
+    uploaded_pdf = None
+        
+    if source_type == "LinkedIn URL":
+        linkedin_url = st.text_input(
+            "Enter LinkedIn Profile URL",
+            placeholder="https://www.linkedin.com/in/username/"
+        )
+    
+    elif source_type == "PDF Upload":
+        uploaded_pdf = st.file_uploader(
+            "Upload LinkedIn Profile PDF",
+            type=["pdf"]
+        )
+        
     submit_btn = st.form_submit_button("Process Profile")
 
 if submit_btn:
     try:
-        if use_mock:
-            linkedin_url="mock://profile"
-
-        with st.spinner("🔍 Extracting LinkedIn profile data..."):
-            profile_data = extract_linkedin_profile(
-                linkedin_profile_url=linkedin_url,
-                api_key=api_key if not use_mock else None,
-                mock=use_mock
-            )
-
-        if not profile_data:
-            st.error("❌ Failed to retrieve profile data.")
-            st.stop()
+        if source_type == "PDF Upload":
+            if not uploaded_pdf:
+                st.warning("⚠️ Please upload a PDF file.")
+                st.stop()
+                
+            profile_data = extract_profile_from_pdf(uploaded_pdf)
+            
+        elif source_type == "LinkedIn URL":
+            if not linkedin_url:
+                st.warning("⚠️ Please enter a LinkedIn profile URL.")
+                st.stop()
+                
+            profile_data = extract_linkedin_profile(linkedin_url)
+            
+        elif source_type == "JSON (Mock Data)":
+            profile_data = extract_mock_profile()
+            
 
         with st.spinner("🧩 Splitting profile data into chunks..."):
             nodes = split_profile_data(profile_data)
@@ -112,9 +118,7 @@ if submit_btn:
         logger.error(e)
         st.error(f"❌ Error: {e}")
 
-# ======================================================
 # 🔹 CHAT SECTION
-# ======================================================
 st.header("2️⃣ Chat with Profile")
 
 if st.session_state.vector_index is None:
