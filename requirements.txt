@@ -7,3 +7,6 @@ gradio
 dotenv
 llama-index-readers-web
 requests
+google-genai
+openai
+streamlit            
