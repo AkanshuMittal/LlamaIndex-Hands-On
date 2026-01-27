@@ -46,11 +46,11 @@ st.header("1️⃣ Process LinkedIn Profile")
 
 source_type = st.radio(
     "Select Profile Source",
-    ["PDF Upload", "LinkedIn URL", "JSON (Mock Data)"]
+    ["PDF Upload"]
 )
 
 with st.form("profile_form"):
-    linkedin_url = None
+    #linkedin_url = None
     uploaded_pdf = None
         
     if source_type == "LinkedIn URL":
