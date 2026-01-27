@@ -62,7 +62,4 @@ Context information is below:
 
 Question: {query_str}
 
-Answer using only the information provided in the context.
-If the answer is not available, say:
-"I don't know. This information is not available in the provided profile."
 """
